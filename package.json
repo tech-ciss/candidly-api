@@ -1,0 +1,62 @@
+{
+  "name": "candidly-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API REST du Personal Career CRM Candidly",
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "build": "npm run prisma:generate && nest build",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "npm run prisma:generate && tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "pretest": "npm run prisma:generate && tsc -p tsconfig.test.json",
+    "test": "node --test .test-dist/test/unit/*.spec.js",
+    "pretest:e2e": "npm run prisma:generate && tsc -p tsconfig.test.json",
+    "test:e2e": "node --test .test-dist/test/e2e/*.spec.js",
+    "pretest:integration": "npm run prisma:generate && tsc -p tsconfig.test.json",
+    "test:integration": "node --test .test-dist/test/integration/*.spec.js",
+    "prestart:dev": "npm run prisma:generate"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.3.2",
+    "@nestjs/core": "12.3.2",
+    "@nestjs/platform-express": "12.3.2",
+    "@nestjs/config": "12.0.1",
+    "@nestjs/swagger": "12.0.5",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.15.1",
+    "dotenv": "18.0.9",
+    "helmet": "8.3.0",
+    "pg": "8.23.1",
+    "redis": "5.12.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@nestjs/cli": "12.0.11",
+    "@nestjs/testing": "12.3.2",
+    "@types/express": "5.0.6",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "@types/supertest": "7.2.1",
+    "eslint": "10.14.0",
+    "prettier": "3.9.10",
+    "prisma": "7.10.1",
+    "supertest": "7.3.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1"
+  }
+}

@@ -1,0 +1,9 @@
+node_modules
+dist
+.test-dist
+coverage
+package-lock.json
+src/generated
+AGENTS.md
+compose.yaml
+docs/development/docker.md

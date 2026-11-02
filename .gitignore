@@ -19,3 +19,7 @@ npm-debug.log*
 !.vscode/settings.json
 
 *.tsbuildinfo
+
+# Sorties générées du backend et des tests techniques
+src/generated/
+.test-dist/
