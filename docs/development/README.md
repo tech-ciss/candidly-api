@@ -73,3 +73,10 @@ leurs tickets respectifs.
 Aucun distant, protection GitHub ou pipeline n'est configuré par CAND-001.
 Leur mise en place sera traitée séparément ; tout push exige une autorisation
 explicite. Ne pas déployer ni exécuter de migration en production sans autorisation.
+
+## Infrastructure locale — CAND-002
+
+Le [guide Docker](docker.md) décrit PostgreSQL 17, Redis 7, la configuration
+locale, les contrôles de santé et de persistance ainsi que le dépannage.
+Ces services sont préparés uniquement dans `candidly-api` ; les applications
+Next.js, NestJS et Prisma ne sont pas initialisées par ce ticket.

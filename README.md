@@ -15,7 +15,8 @@ avec vérification systématique de l’appartenance des ressources privées.
 Node.js, NestJS, TypeScript, PostgreSQL, Prisma ORM, Redis, BullMQ,
 Swagger/OpenAPI, JWT et Argon2id.
 
-Ces technologies seront installées dans les tickets suivants.
+PostgreSQL et Redis sont préparés via Docker Compose dans CAND-002.
+Les frameworks et les autres technologies seront installés dans les tickets suivants.
 
 ## Architecture générale
 
@@ -36,16 +37,29 @@ et [NestJS](https://docs.nestjs.com/first-steps). Les versions exactes des frame
 seront vérifiées lors de leur installation. `.nvmrc` suit la dernière corrective
 24.x disponible plutôt que de figer un correctif ancien.
 
-## État actuel — CAND-001
+## État actuel — CAND-002
 
-Seules les fondations Git, les configurations générales et la documentation sont
-préparées. Aucun framework, dépendance applicative, service de données ou Docker
-n'est installé. Aucun `package.json` ni script npm n'existe : il n'y a pas encore
-de commande de démarrage, lint, typecheck, test ou build.
+Les fondations Git et la documentation sont en place. `compose.yaml` prépare
+PostgreSQL 17 et Redis 7 avec volumes persistants et ports limités à `127.0.0.1`.
+Docker Engine et le plugin Docker Compose sont nécessaires pour ces services.
 
-[.env.example](.env.example) décrit uniquement la configuration locale future.
-Les valeurs sont fictives et ne démarrent aucun service. Les fichiers `.env`
-réels sont ignorés et ne doivent jamais être commités.
+Depuis ce dépôt, copier `.env.example` vers `.env` si ce dernier n'existe pas,
+puis démarrer l'infrastructure :
+
+```bash
+cp -n .env.example .env
+docker compose config --quiet
+docker compose up -d
+docker compose ps
+```
+
+Voir le [guide Docker](docs/development/docker.md) pour les ports personnalisés,
+les vérifications, la persistance et le dépannage. Les valeurs de `.env.example`
+sont exclusivement locales ; les fichiers `.env` réels sont ignorés par Git.
+
+Aucun framework ni dépendance applicative n'est installé. Aucun `package.json`
+ni script npm n'existe : l'API ne dispose pas encore de commande de démarrage,
+lint, typecheck, test ou build.
 
 ## Documentation
 
@@ -62,4 +76,4 @@ travailler sur `feature/CAND-XXX-description` ou `fix/CAND-XXX-description`.
 Chaque ticket nécessite une revue et un rapport de validation factuel.
 Ne jamais publier de secrets ni effectuer de push sans autorisation explicite.
 
-CAND-001 est soumis à validation ; CAND-002 ne doit pas commencer automatiquement.
+CAND-002 est soumis à validation ; CAND-003 ne doit pas commencer automatiquement.
