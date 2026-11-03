@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Qualité et tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NODE_ENV: test
+      PORT: '3001'
+      # Identifiants fictifs, réservés aux services éphémères de cette CI.
+      DATABASE_URL: postgresql://candidly_ci:ci_only_password@127.0.0.1:5432/candidly_test
+      INTEGRATION_DATABASE_URL: postgresql://candidly_ci:ci_only_password@127.0.0.1:5432/candidly_test
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: '6379'
+      CORS_ORIGIN: http://localhost:3000
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: candidly_test
+          POSTGRES_USER: candidly_ci
+          POSTGRES_PASSWORD: ci_only_password
+        ports:
+          - '127.0.0.1:5432:5432'
+        options: >-
+          --health-cmd "pg_isready -U candidly_ci -d candidly_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      redis:
+        image: redis:7
+        ports:
+          - '127.0.0.1:6379:6379'
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Préparer Node.js 24 et le cache npm
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Installer les dépendances verrouillées
+        run: npm ci
+      - name: Générer et valider Prisma
+        run: |
+          npm run prisma:generate
+          npm run prisma:validate
+      - name: npm run lint
+        run: npm run lint
+      - name: npm run typecheck
+        run: npm run typecheck
+      - name: npm run format:check
+        run: npm run format:check
+      - name: npm run test
+        run: npm run test
+      - name: npm run build
+        run: npm run build
+      - name: npm run test:e2e
+        run: npm run test:e2e
+      - name: npm run test:integration
+        run: npm run test:integration
+      - name: Audit des dépendances de production (informatif)
+        id: audit
+        continue-on-error: true
+        run: npm audit --omit=dev
+      - name: Signaler un audit non concluant
+        if: ${{ steps.audit.outcome == 'failure' }}
+        run: |
+          echo "::warning::L'audit npm signale des vulnérabilités ou une erreur de registre. Consulter cette étape."
+          echo "### Audit npm à examiner" >> "$GITHUB_STEP_SUMMARY"
+          echo "Le contrôle est informatif. Lire les détails de l'étape audit et traiter les résultats séparément." >> "$GITHUB_STEP_SUMMARY"
