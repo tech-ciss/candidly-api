@@ -152,6 +152,12 @@ void test('Helmet et CORS limitent les origines explicitement autorisées', asyn
 
 void test('Swagger n’est pas monté en production', async () => {
   const previous = process.env.NODE_ENV;
+  const previousFrontend = process.env.FRONTEND_URL;
+  const previousCors = process.env.CORS_ORIGIN;
+  process.env.CORS_ORIGIN = 'https://frontend.example';
+  const previousTransport = process.env.EMAIL_TRANSPORT;
+  process.env.EMAIL_TRANSPORT = 'disabled';
+  process.env.FRONTEND_URL = 'https://frontend.example';
   process.env.NODE_ENV = 'production';
   let production: INestApplication | undefined;
   try {
@@ -174,5 +180,10 @@ void test('Swagger n’est pas monté en production', async () => {
   } finally {
     await production?.close();
     process.env.NODE_ENV = previous;
+    process.env.CORS_ORIGIN = previousCors;
+    if (previousTransport === undefined) delete process.env.EMAIL_TRANSPORT;
+    else process.env.EMAIL_TRANSPORT = previousTransport;
+    if (previousFrontend === undefined) delete process.env.FRONTEND_URL;
+    else process.env.FRONTEND_URL = previousFrontend;
   }
 });

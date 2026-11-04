@@ -8,12 +8,15 @@ Ce dépôt contient l'API REST NestJS. `candidly-web` est un dépôt indépendan
 communique exclusivement avec cette API. Lire [AGENTS.md](AGENTS.md) avant toute
 intervention.
 
-## État actuel — CAND-003
+## État actuel — CAND-009
 
 Le socle technique comprend TypeScript strict, la configuration validée, Prisma
 avec PostgreSQL, une sonde Redis, Swagger, la validation des entrées, Helmet,
-CORS et des erreurs HTTP normalisées. Aucun module métier ni authentification
-n'est implémenté. BullMQ, le stockage privé et les intégrations restent à venir.
+CORS et des erreurs HTTP normalisées. Le module auth permet l'inscription, la
+vérification email et le renvoi, avec Argon2id et limitation Redis. CAND-007
+ajoute login, JWT court, refresh par cookie avec rotation, sessions révocables
+et `/auth/me`. CAND-008 ajoute profil, préférences et récupération de compte.
+Le transport email reste strictement local.
 
 ## Prérequis et installation
 
@@ -30,7 +33,13 @@ npm ci
 cp -n .env.example .env
 ```
 
-Adapter `.env` aux services locaux. Garder `DATABASE_URL` cohérent avec
+Adapter `.env` aux services locaux. Remplacer le marqueur `JWT_SIGNING_KEY` par
+une clé base64 cryptographiquement aléatoire de 32 octets minimum, uniquement
+dans `.env`. Exemple de génération à exécuter dans un terminal privé :
+`node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"`.
+Ne pas partager la clé ni la commiter. La configuration refuse le marqueur exemple.
+
+Garder `DATABASE_URL` cohérent avec
 `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` et `POSTGRES_PORT`.
 Les exemples sont réservés au développement ; ne jamais commiter de secret.
 
@@ -39,6 +48,8 @@ docker compose config --quiet
 docker compose up -d --wait
 npm run prisma:validate
 npm run prisma:generate
+# Après vérification de la cible locale et du SQL versionné :
+npm run prisma:migrate:deploy
 npm run start:dev
 ```
 
@@ -89,14 +100,10 @@ Prisma utilise `prisma.config.ts` pour l'URL de connexion et génère le client 
 dans `src/generated/prisma` (ignoré par Git). `npm ci` installe les dépendances ;
 `prisma:generate`, `build` et les validations génèrent le client.
 
-Le schéma ne contient aucun modèle métier. Une migration vide ou une table
-fictive n'apporterait aucune évolution : aucune migration artificielle n'est
-créée. Lors du premier changement réel de schéma, sur une base locale dédiée :
-
-```bash
-npm run prisma:migrate:dev -- --name description
-npm run prisma:generate
-```
+La migration `20261103000100_user_email_verification` crée `User` et
+`EmailVerificationToken`, leurs contraintes et index. Les emails sont uniques
+et normalisés ; seuls les hashes Argon2id et les empreintes SHA-256 des tokens
+sont conservés. Voir [les migrations](prisma/migrations/README.md).
 
 `npm run prisma:migrate:deploy` applique les migrations déjà versionnées ; ne
 pas l'utiliser en production sans sauvegarde vérifiée et autorisation explicite.
@@ -113,4 +120,72 @@ Conventional Commits, `main` stable, branches `feature/CAND-XXX-description`
 ou `fix/CAND-XXX-description`. Chaque ticket nécessite revue et validation
 factuelle. Aucun push ni déploiement sans autorisation explicite.
 
-CAND-003 est soumis à validation ; ne pas commencer automatiquement CAND-004.
+## Inscription et vérification
+
+| Route POST `/api/v1/auth/…` | Succès | Fonction                                                                           |
+| --------------------------- | ------ | ---------------------------------------------------------------------------------- |
+| `register`                  | 202    | Email, password (12–128 caractères), firstName, lastName (1–100) ; demande durable |
+| `verify-email`              | 200    | `{ "token": "…" }`, token à usage unique, validité initiale 24 h                   |
+| `resend-verification`       | 202    | `{ "email": "awa@example.com" }`, réponse générique et cooldown de 60 s            |
+
+En développement, lire les messages JSON dans `.local-emails/` : ils contiennent
+un lien privé vers `/verify-email#token=…`. Aucun email n'est réellement délivré.
+Le frontend de vérification sera créé dans un ticket ultérieur ; envoyer le
+token à l'endpoint POST via Swagger pour tester le parcours dès maintenant.
+Ne pas partager ces fichiers ni placer ce dossier dans un serveur web.
+Voir [le cycle et ses limites](docs/architecture/authentication.md) et
+[le guide local](docs/development/README.md#inscription-et-email--cand-006).
+
+## Connexion et sessions — CAND-007
+
+| Endpoint                    | Succès | Fonction                                                                             |
+| --------------------------- | ------ | ------------------------------------------------------------------------------------ |
+| `POST /api/v1/auth/login`   | 200    | Email normalisé + password, email vérifié requis ; access token et identité publique |
+| `POST /api/v1/auth/refresh` | 200    | Cookie refresh tournant, nouvel access token                                         |
+| `POST /api/v1/auth/logout`  | 204    | Révocation de la session et effacement du cookie, idempotent                         |
+| `GET /api/v1/auth/me`       | 200    | Bearer JWT et session active ; uniquement six champs d'identité publique             |
+
+Login, refresh et logout exigent `Origin: http://localhost:3000` (ou FRONTEND_URL
+configurée) et `X-Candidly-CSRF: 1`. Les clients navigateur utilisent
+`credentials: include`. Cookie host-only HttpOnly, SameSite=Strict, Secure en
+production, Path=/api/v1/auth. Le refresh n'apparaît jamais dans le JSON.
+Le JWT expire initialement après 15 min et la session après 30 jours absolus.
+Une réutilisation révoque toute la session, y compris après une course de refresh.
+La révocation est vérifiée en base à chaque requête protégée.
+
+Voir [l'architecture des sessions](docs/architecture/sessions.md) et
+[l'ADR cookies/CSRF](docs/adr/0002-session-security.md). Le frontend n'est pas
+modifié par ce ticket. CAND-007 a fourni le socle réutilisé par CAND-008.
+
+## Profil, préférences et récupération — CAND-008
+
+| Endpoint                             | Fonction                                                                               |
+| ------------------------------------ | -------------------------------------------------------------------------------------- |
+| `GET /api/v1/users/me`               | Profil public de l'utilisateur authentifié                                             |
+| `PATCH /api/v1/users/me`             | firstName/lastName uniquement, au moins un champ                                       |
+| `GET /api/v1/users/me/preferences`   | Préférences persistantes, fr et Africa/Abidjan par défaut                              |
+| `PATCH /api/v1/users/me/preferences` | locale fr et fuseau IANA pris en charge par Node, ou UTC                               |
+| `POST /api/v1/auth/change-password`  | currentPassword/newPassword ; JWT et contrôles CSRF, révocation de toutes les sessions |
+| `POST /api/v1/auth/forgot-password`  | email normalisé ; 202 générique et demande durable avec cooldown                       |
+| `POST /api/v1/auth/reset-password`   | token/newPassword ; usage unique, révocation de toutes les sessions                    |
+
+Le changement et le reset imposent une nouvelle connexion. Les mots de passe
+restent entre 12 et 128 caractères. Le reset n'authentifie pas et ne confirme
+pas implicitement l'email. Un compte non vérifié peut récupérer son mot de passe,
+mais doit encore vérifier son email avant de se connecter.
+
+En local, le message privé pointe vers la future page `/reset-password#token=…`.
+Aucun email n'est réellement délivré. Le token expire initialement après 30 min,
+le cooldown est de 60 s. Consulter [l'architecture de récupération](docs/architecture/account-recovery.md).
+
+## Autorisations — CAND-009
+
+Les routes privées réutilisent JwtAuthGuard. CurrentActor transmet un contexte
+minimal userId/sessionId aux services et repositories Users ; CurrentUser conserve
+les réponses d'identité publiques. Les requêtes et mutations sont filtrées par
+propriétaire, avec helpers réutilisables et 404 identique pour une ressource privée
+absente ou étrangère. Aucun nouveau modèle ou endpoint CRM.
+
+Voir [la stratégie et les conventions obligatoires](docs/architecture/authorization.md)
+pour les lectures, recherches, listes, lots, relations et futurs modules.
+CAND-009 est prêt pour validation ; ne pas commencer CAND-010.

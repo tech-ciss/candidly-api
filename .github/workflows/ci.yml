@@ -61,6 +61,8 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: package-lock.json
+      - name: Générer une clé JWT éphémère pour les tests
+        run: node -e "console.log('JWT_SIGNING_KEY=' + require('node:crypto').randomBytes(32).toString('base64'))" >> "$GITHUB_ENV"
       - name: Installer les dépendances verrouillées
         run: npm ci
       - name: Générer et valider Prisma
@@ -79,6 +81,8 @@ jobs:
         run: npm run build
       - name: npm run test:e2e
         run: npm run test:e2e
+      - name: Appliquer les migrations à la base de test éphémère
+        run: npm run prisma:migrate:deploy
       - name: npm run test:integration
         run: npm run test:integration
       - name: Audit des dépendances de production (informatif)

@@ -23,3 +23,6 @@ npm-debug.log*
 # Sorties générées du backend et des tests techniques
 src/generated/
 .test-dist/
+
+# Messages de vérification locaux : contiennent des liens privés.
+.local-emails/

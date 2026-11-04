@@ -6,12 +6,12 @@ Deux dépôts Git indépendants : `candidly-web` pour le frontend web/PWA et
 ```text
 Navigateur → candidly-web → API REST /api/v1 → candidly-api
                                                 ├── PostgreSQL / Prisma
-                                                ├── Redis (sonde technique)
+                                                ├── Redis (sonde et limitation auth)
                                                 └── Stockage objet privé S3 (futur)
 ```
 
 Le frontend n'accède jamais à PostgreSQL. Le backend est un monolithe modulaire.
-Les futurs contrôleurs gèreront HTTP, les DTO la validation, les services la
+Les contrôleurs gèrent HTTP, les DTO la validation, les services la
 logique métier et les repositories les accès complexes. Les vérifications
 systématiques d'appartenance seront ajoutées avec les ressources privées.
 
@@ -29,8 +29,8 @@ systématiques d'appartenance seront ajoutées avec les ressources privées.
 - `common/filters/` : normalisation de toutes les erreurs HTTP et inattendues.
 - `common/interceptors/` : emplacement réservé ; aucun enveloppement des succès
   n'est ajouté artificiellement.
-- `prisma/` : datasource PostgreSQL sans modèle métier. L'URL est dans
-  `prisma.config.ts`. Aucune migration vide ou table fictive.
+- `prisma/` : modèles User et EmailVerificationToken depuis CAND-006 ; URL dans
+  `prisma.config.ts` et première migration métier versionnée.
 - `test/` : tests unitaires, HTTP avec mocks et connexions locales réelles.
 
 PostgreSQL reste la source de vérité. Les connexions, requêtes et statements
@@ -67,9 +67,10 @@ indiquent seulement le statut HTTP des erreurs serveur.
 
 Validation globale : whitelist, refus des champs inconnus, transformation
 activée sans conversion implicite ; les futurs DTO utiliseront class-validator
-et des conversions explicites lorsque nécessaires. Aucun DTO métier fictif.
+et des conversions explicites lorsque nécessaires. Le module auth ajoute les DTO métier.
 CORS accepte uniquement les origines HTTP(S) explicites configurées. Helmet
-ajoute les en-têtes de sécurité. L'authentification reste hors périmètre.
+ajoute les en-têtes de sécurité. Le login et les sessions sont décrits dans
+[l'architecture CAND-007](sessions.md).
 
 Swagger expose `/docs` et `/docs-json` en développement/test, avec les routes
 versionnées et les schémas 200/503. Il n'est jamais monté automatiquement en
@@ -78,7 +79,9 @@ production.
 ## Suite de l'architecture cible
 
 Redis et BullMQ serviront aux rappels, notifications, emails et imports, avec
-reprises et idempotence. Aucun worker métier n'est initialisé ici.
+reprises et idempotence. Pour CAND-006, un traitement borné dans le processus
+reprend un marqueur durable PostgreSQL sans file supplémentaire ; voir
+[l'architecture d'inscription](authentication.md) et l'ADR 0001.
 Les documents utiliseront un stockage objet privé compatible S3, avec contrôle
 d'accès, URL signée temporaire et préservation des versions historiques.
 Le fournisseur reste à définir.
@@ -93,3 +96,28 @@ seront créés progressivement selon [AGENTS.md](../../AGENTS.md).
 - [NestJS : conventions ESM et prérequis](https://docs.nestjs.com/migration-guide)
 - [Prisma 7 : génération du client](https://www.prisma.io/docs/orm/v7/prisma-client/setup-and-configuration/generating-prisma-client)
 - [Prisma 7 : fichier de configuration](https://www.prisma.io/docs/orm/v7/reference/prisma-config-reference)
+
+## Sessions — CAND-007
+
+Le module auth ajoute le contrôleur de sessions, les DTO login/identité,
+SessionService et SessionRepository, AccessTokenService, JwtAuthGuard réutilisable,
+CurrentUser typé, CookieCsrfGuard et SessionCookieService. La protection reste
+explicite sur les routes privées, sans fermer inscription et vérification.
+Voir [sessions.md](sessions.md) et [l'ADR 0002](../adr/0002-session-security.md).
+
+## Compte et récupération — CAND-008
+
+`modules/users` ajoute contrôleur, DTO, service et repository du profil et des
+préférences. Il importe AuthModule et utilise JwtAuthGuard/CurrentUser existants.
+`modules/auth` ajoute PasswordRecoveryController/Service/Repository et le traitement
+des demandes durables PasswordResetDeliveryService. Les deux traitements email
+partagent désormais leur cycle de vie DurableEmailDelivery sans mélanger les
+modèles de tokens. Voir [account-recovery.md](account-recovery.md).
+
+## Autorisations — CAND-009
+
+Voir [authorization.md](authorization.md) : contexte minimal CurrentActor,
+propriétaire imposé dans les repositories, filtres AND/id+userId, mutations
+conditionnelles, politique 403/404, lots tout-ou-rien et invariants de relations.
+CurrentUser reste compatible pour l'identité publique ; le contexte transmis au
+module Users ne transporte plus le profil. Aucune migration ou table CRM.

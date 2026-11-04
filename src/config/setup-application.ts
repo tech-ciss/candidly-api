@@ -11,7 +11,12 @@ export function setupApplication(app: INestApplication): void {
   // Un seul préfixe, sans versionnement URI supplémentaire.
   app.setGlobalPrefix('api/v1');
   app.use(helmet());
-  app.enableCors({ origin: config.corsOrigins });
+  app.enableCors({
+    origin: config.corsOrigins,
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Candidly-CSRF'],
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -28,6 +33,8 @@ export function setupApplication(app: INestApplication): void {
       .setTitle('Candidly API')
       .setDescription('API REST du Personal Career CRM Candidly.')
       .setVersion('1.0')
+      .addBearerAuth()
+      .addCookieAuth('candidly_refresh')
       .addTag('health', 'Disponibilité de l’application et de ses dépendances.')
       .build();
     const document = SwaggerModule.createDocument(app, swaggerConfig);
