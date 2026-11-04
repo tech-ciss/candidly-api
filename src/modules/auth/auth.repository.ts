@@ -1,3 +1,4 @@
+import { writeAudit } from '../audit/audit-log.js';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service.js';
@@ -13,20 +14,30 @@ export class AuthRepository {
   ) {}
 
   async register(input: RegisterDto, passwordHash: string): Promise<void> {
+    let creatingUser = true;
     try {
-      await this.prisma.user.create({
-        data: {
-          email: input.email,
-          firstName: input.firstName,
-          lastName: input.lastName,
-          passwordHash,
-          preference: { create: {} },
-          verificationRequestedAt: new Date(),
-        },
+      await this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            email: input.email,
+            firstName: input.firstName,
+            lastName: input.lastName,
+            passwordHash,
+            preference: { create: {} },
+            verificationRequestedAt: new Date(),
+          },
+        });
+        creatingUser = false;
+        await writeAudit(tx, {
+          eventType: 'REGISTER',
+          targetType: 'USER',
+          targetId: user.id,
+        });
       });
     } catch (error) {
       // Une collision concurrente est couverte par la contrainte unique, jamais par un simple précontrôle.
       if (
+        creatingUser &&
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       )
@@ -83,6 +94,11 @@ export class AuthRepository {
       await tx.emailVerificationToken.updateMany({
         where: { userId: candidate.userId, consumedAt: null },
         data: { consumedAt: now },
+      });
+      await writeAudit(tx, {
+        eventType: 'EMAIL_VERIFIED',
+        targetType: 'USER',
+        targetId: candidate.userId,
       });
       return true;
     });

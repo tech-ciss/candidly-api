@@ -59,6 +59,7 @@ const sessions = new Map<
 >();
 const history = new Map<string, string>();
 const repository = {
+  recordLoginFailure: () => Promise.resolve(),
   findCredentials: (email: string) =>
     Promise.resolve(email === user.email ? user : null),
   create: (

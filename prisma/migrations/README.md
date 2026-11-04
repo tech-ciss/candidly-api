@@ -73,3 +73,16 @@ Vérification locale : appliquer d'abord les deux migrations précédentes à un
 base dédiée vide, créer un compte fictif, appliquer CAND-008, puis constater que
 prénom/hash sont préservés et que les préférences fr/Africa/Abidjan existent.
 Le compte de vérification a ensuite été retiré, sans reset ni purge globale.
+
+## Audit — CAND-010
+
+20261104000200_security_audit_log crée AuditOutcome et AuditLog avec index
+acteur/date, événement/date et requestId. actorUserId est nullable, FK vers User
+avec ON DELETE SET NULL ; la suppression d'un compte conserve l'audit. Les cibles
+UUID historiques ne sont pas des FK supprimant le journal. Aucun DROP, reset ou
+réécriture des anciennes tables/migrations. Aucune suppression d'audit par maintenance.
+
+La migration locale est relue puis appliquée uniquement sur une base dédiée
+vérifiée. Les mutations critiques et leur audit partagent une transaction. La
+clé étrangère vers User impose un ordre de verrouillage User puis Session,
+y compris refresh/logout, pour rester cohérent avec changement/reset.

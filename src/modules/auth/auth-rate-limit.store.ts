@@ -1,3 +1,4 @@
+import { RATE_LIMIT_WINDOW_SECONDS } from './auth-rate-limit.policy.js';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import type { OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -37,7 +38,7 @@ export class AuthRateLimitStore implements OnModuleDestroy {
           createHash('sha256').update(address).digest('hex');
         const result = await client.eval(script, {
           keys: [key],
-          arguments: ['900'],
+          arguments: [String(RATE_LIMIT_WINDOW_SECONDS)],
         });
         return typeof result === 'number' && result <= limit;
       };

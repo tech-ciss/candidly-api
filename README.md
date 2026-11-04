@@ -8,7 +8,7 @@ Ce dépôt contient l'API REST NestJS. `candidly-web` est un dépôt indépendan
 communique exclusivement avec cette API. Lire [AGENTS.md](AGENTS.md) avant toute
 intervention.
 
-## État actuel — CAND-009
+## État actuel — CAND-010
 
 Le socle technique comprend TypeScript strict, la configuration validée, Prisma
 avec PostgreSQL, une sonde Redis, Swagger, la validation des entrées, Helmet,
@@ -188,4 +188,21 @@ absente ou étrangère. Aucun nouveau modèle ou endpoint CRM.
 
 Voir [la stratégie et les conventions obligatoires](docs/architecture/authorization.md)
 pour les lectures, recherches, listes, lots, relations et futurs modules.
-CAND-009 est prêt pour validation ; ne pas commencer CAND-010.
+
+## Sécurité et audit — CAND-010
+
+Logs JSON à champs autorisés, X-Request-Id généré côté serveur, limite JSON/form
+16 Kio par défaut et confiance proxy désactivée par défaut. AuditLog conserve les
+événements sensibles ; les audits critiques sont atomiques avec leurs mutations.
+Aucun token, corps sensible, email brut ou chaîne de connexion n'est journalisé.
+
+Après build, `npm run maintenance:cleanup` est un dry-run local ; `-- --apply`
+reste explicite et borné, sur expirations + 7 jours, sans supprimer les audits.
+Voir [la sécurité HTTP](docs/architecture/security.md),
+[la politique d'audit](docs/architecture/audit-logging.md) et
+[la checklist avant production](docs/development/security-checklist.md).
+
+Audit npm : 12 alertes modérées dans l'outillage de développement, aucune dans
+les dépendances de production à la date du contrôle. Le correctif minimatch
+majeur reste à planifier ; voir l'analyse détaillée. Aucun déploiement effectué.
+CAND-010 est soumis à validation ; ne pas commencer le ticket suivant.

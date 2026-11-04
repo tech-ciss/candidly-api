@@ -1,6 +1,9 @@
+import { isIP } from 'node:net';
 export interface Environment {
   NODE_ENV: 'development' | 'test' | 'production';
   PORT: number;
+  HTTP_BODY_LIMIT_BYTES: number;
+  TRUSTED_PROXY_IP: string;
   JWT_SIGNING_KEY: string;
   JWT_ISSUER: string;
   JWT_AUDIENCE: string;
@@ -83,7 +86,8 @@ export function validateEnvironment(
         !['http:', 'https:'].includes(url.protocol) ||
         url.origin !== origin ||
         url.username ||
-        url.password
+        url.password ||
+        (nodeEnv === 'production' && url.protocol !== 'https:')
       ) {
         throw new Error();
       }
@@ -150,6 +154,13 @@ export function validateEnvironment(
     60,
     86400,
   );
+  const bodyLimit = positiveInteger('HTTP_BODY_LIMIT_BYTES', 16384, 1048576);
+  const trustedProxy = input.TRUSTED_PROXY_IP ?? '';
+  if (
+    typeof trustedProxy !== 'string' ||
+    (trustedProxy !== '' && isIP(trustedProxy) === 0)
+  )
+    errors.push('TRUSTED_PROXY_IP doit être vide ou une adresse IP exacte');
   const signingKey = required('JWT_SIGNING_KEY');
   if (
     !/^[A-Za-z0-9+/]+={0,2}$/.test(signingKey) ||
@@ -202,6 +213,8 @@ export function validateEnvironment(
   return {
     NODE_ENV: nodeEnv as Environment['NODE_ENV'],
     PORT: apiPort,
+    HTTP_BODY_LIMIT_BYTES: bodyLimit,
+    TRUSTED_PROXY_IP: trustedProxy as string,
     JWT_SIGNING_KEY: signingKey,
     JWT_ISSUER: jwtIssuer as string,
     JWT_AUDIENCE: jwtAudience as string,

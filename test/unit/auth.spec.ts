@@ -155,8 +155,12 @@ void test('repository : doublon P2002 absorbé, panne inattendue propagée', asy
         ),
     },
   };
+  const client = {
+    $transaction: (callback: (value: typeof prisma) => Promise<void>) =>
+      callback(prisma),
+  };
   const repository = new AuthRepository(
-    prisma as unknown as import('../../src/database/prisma.service.js').PrismaService,
+    client as unknown as import('../../src/database/prisma.service.js').PrismaService,
     new ConfigService(),
   );
   const body = plainToInstance(RegisterDto, {

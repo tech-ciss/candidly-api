@@ -72,6 +72,7 @@ function tokenFor(userId: string, expired = false) {
   return token.raw;
 }
 const sessionRepository = {
+  recordLoginFailure: () => Promise.resolve(),
   findCredentials: (email: string) =>
     Promise.resolve(people.find((user) => user.email === email) ?? null),
   create: (id: string, userId: string, _hash: string, expiresAt: Date) => {

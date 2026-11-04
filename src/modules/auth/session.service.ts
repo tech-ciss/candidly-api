@@ -35,7 +35,10 @@ export class SessionService {
       user?.passwordHash,
       input.password,
     );
-    if (!valid || !user?.emailVerifiedAt) throw new UnauthorizedException();
+    if (!valid || !user?.emailVerifiedAt) {
+      await this.repository.recordLoginFailure();
+      throw new UnauthorizedException();
+    }
     const id = randomUUID();
     const refresh = createRefreshToken();
     const expiresAt = new Date(

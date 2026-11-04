@@ -1,3 +1,7 @@
+import {
+  RATE_LIMIT_WINDOW_SECONDS,
+  rateLimitFor,
+} from './auth-rate-limit.policy.js';
 import { Injectable, HttpException } from '@nestjs/common';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import type { Request, Response } from 'express';
@@ -12,10 +16,12 @@ export class AuthRateLimitGuard implements CanActivate {
     const allowed = await this.store.consume(
       route,
       request.ip ?? request.socket.remoteAddress ?? 'unknown',
-      route === 'verify' || route === 'refresh' || route === 'logout' ? 30 : 5,
+      rateLimitFor(route),
     );
     if (!allowed) {
-      http.getResponse<Response>().setHeader('Retry-After', '900');
+      http
+        .getResponse<Response>()
+        .setHeader('Retry-After', String(RATE_LIMIT_WINDOW_SECONDS));
       throw new HttpException('Trop de requêtes.', 429);
     }
     return true;

@@ -522,3 +522,28 @@ fixtures example.com ; l'arrêt Compose conserve les volumes.
 Aucune dépendance, modification du schéma/migrations, infrastructure, rôle admin,
 frontend ou déploiement. Les exemples ne dispensent pas d'auditer chaque nouveau
 repository et de tester ses modèles réels à deux utilisateurs.
+
+## Sécurité HTTP, logs et audit — CAND-010
+
+Lire la [checklist](security-checklist.md), l'[audit npm](dependency-audit-cand-010.md)
+et les politiques [HTTP](../architecture/security.md) / [audit](../architecture/audit-logging.md).
+Variables nouvelles : HTTP_BODY_LIMIT_BYTES=16384 (1–1048576) et TRUSTED_PROXY_IP
+vide par défaut (une IP exacte connue seulement). Aucune dépendance ajoutée.
+
+Le serveur écrit des JSON à champs autorisés et génère X-Request-Id, sans reprendre
+l'ID client ni modifier les JSON métier. CORS expose cet en-tête. Les motifs de
+route enregistrés remplacent les URL/query dans les logs. Les audits critiques
+sont insérés par les repositories dans leur transaction PostgreSQL ; une panne
+annule la mutation. Les échecs login sont anonymes et best effort.
+
+Validation locale : projet candidly-cand010-check, PostgreSQL 55440, Redis 56387,
+base candidly_test, identifiants fictifs candidly_ci/ci_only_password. Vérifier la
+cible puis appliquer les quatre migrations, générer Prisma et exécuter les mêmes
+sept scripts de validation, puis npm audit et npm audit --omit=dev. Une clé JWT
+test éphémère reste nécessaire. Les tests nettoient seulement leurs comptes ;
+les audits sont conservés. Arrêter Compose sans supprimer les volumes.
+
+Après build et vérification d'une cible locale _dev/_test, la commande
+maintenance:cleanup est dry-run ; ajouter -- --apply pour une exécution manuelle
+bornée. Aucun cron, audit supprimé ou fichier email automatiquement retiré.
+Les hypothèses de conservation de sept jours après expiration restent à valider.

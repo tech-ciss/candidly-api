@@ -25,7 +25,8 @@
     "test:e2e": "node --test .test-dist/test/e2e/*.spec.js",
     "pretest:integration": "npm run prisma:generate && tsc -p tsconfig.test.json",
     "test:integration": "node --test .test-dist/test/integration/*.spec.js",
-    "prestart:dev": "npm run prisma:generate"
+    "prestart:dev": "npm run prisma:generate",
+    "maintenance:cleanup": "node dist/maintenance/run-cleanup.js"
   },
   "dependencies": {
     "@nestjs/common": "12.3.2",

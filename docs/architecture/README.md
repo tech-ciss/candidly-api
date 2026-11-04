@@ -121,3 +121,10 @@ propriétaire imposé dans les repositories, filtres AND/id+userId, mutations
 conditionnelles, politique 403/404, lots tout-ou-rien et invariants de relations.
 CurrentUser reste compatible pour l'identité publique ; le contexte transmis au
 module Users ne transporte plus le profil. Aucune migration ou table CRM.
+
+## Durcissement et audit — CAND-010
+
+[security.md](security.md) décrit HTTP, proxy exact, seuils Redis et rétention.
+[audit-logging.md](audit-logging.md) définit les champs autorisés, la corrélation,
+les événements, les transactions et les limites de livraison. AuditLog est ajouté
+sans modifier les anciennes migrations ; la maintenance reste manuelle et locale.

@@ -3,12 +3,19 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { setupApplication } from './config/setup-application.js';
-import { EnvironmentValidationError } from './config/env.validation.js';
+import {
+  StructuredLogger,
+  structuredLog,
+} from './common/observability/structured-logger.js';
+Logger.overrideLogger(new StructuredLogger());
 
 async function bootstrap(): Promise<void> {
   // Import dynamique pour intercepter aussi les erreurs de validation initiales.
   const { AppModule } = await import('./app.module.js');
-  const app = await NestFactory.create(AppModule, { abortOnError: false });
+  const app = await NestFactory.create(AppModule, {
+    abortOnError: false,
+    logger: new StructuredLogger(),
+  });
   try {
     setupApplication(app);
     await app.listen(
@@ -21,14 +28,11 @@ async function bootstrap(): Promise<void> {
   }
 }
 
-bootstrap().catch((error: unknown) => {
-  // Les erreurs de configuration détaillent seulement les noms des variables.
-  // Les exceptions de drivers ne doivent jamais être journalisées ici.
-  Logger.error(
-    error instanceof EnvironmentValidationError
-      ? error.message
-      : 'Démarrage impossible. Vérifier les variables d’environnement et la disponibilité de PostgreSQL.',
-    'Bootstrap',
-  );
+bootstrap().catch(() => {
+  structuredLog({
+    level: 'error',
+    module: 'Application',
+    event: 'application.bootstrap_failed',
+  });
   process.exitCode = 1;
 });

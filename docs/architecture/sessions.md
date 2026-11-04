@@ -120,3 +120,11 @@ laisser de session active basée sur l'ancien mot de passe. Les refresh/logout
 conservent leur verrou Session ; les opérations de mot de passe prennent User
 puis révoquent Session, sans ajouter de verrou User dans un refresh.
 Voir [la politique complète](account-recovery.md).
+
+## Ordre des verrous avec audit — CAND-010
+
+L'audit possède désormais une FK vers User. Refresh et logout prennent donc le
+verrou User avant Session, comme login/changement/reset, puis écrivent mutation
+et audit critique dans la même transaction. Cela évite une prise de verrou User
+inverse lors de l'insertion d'audit. Les garanties de rotation/révocation restent
+inchangées ; voir [audit-logging.md](audit-logging.md) pour les échecs d'audit.

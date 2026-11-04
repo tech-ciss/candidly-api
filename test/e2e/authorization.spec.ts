@@ -92,6 +92,7 @@ const users = {
   },
 };
 const sessionRepository = {
+  recordLoginFailure: () => Promise.resolve(),
   findCredentials: (email: string) =>
     Promise.resolve(people.find((value) => value.email === email) ?? null),
   create: (
