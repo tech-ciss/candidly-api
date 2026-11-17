@@ -8,7 +8,7 @@ Ce dépôt contient l'API REST NestJS. `candidly-web` est un dépôt indépendan
 communique exclusivement avec cette API. Lire [AGENTS.md](AGENTS.md) avant toute
 intervention.
 
-## État actuel — CAND-010
+## État actuel — CAND-011
 
 Le socle technique comprend TypeScript strict, la configuration validée, Prisma
 avec PostgreSQL, une sonde Redis, Swagger, la validation des entrées, Helmet,
@@ -16,7 +16,8 @@ CORS et des erreurs HTTP normalisées. Le module auth permet l'inscription, la
 vérification email et le renvoi, avec Argon2id et limitation Redis. CAND-007
 ajoute login, JWT court, refresh par cookie avec rotation, sessions révocables
 et `/auth/me`. CAND-008 ajoute profil, préférences et récupération de compte.
-Le transport email reste strictement local.
+Le transport email reste strictement local. CAND-011 ajoute le répertoire privé
+d’entreprises, sa recherche paginée, l’archivage et les audits transactionnels.
 
 ## Prérequis et installation
 
@@ -206,3 +207,13 @@ Audit npm : 12 alertes modérées dans l'outillage de développement, aucune dan
 les dépendances de production à la date du contrôle. Le correctif minimatch
 majeur reste à planifier ; voir l'analyse détaillée. Aucun déploiement effectué.
 CAND-010 est soumis à validation ; ne pas commencer le ticket suivant.
+
+## Entreprises — CAND-011
+
+`/api/v1/companies` : création, liste paginée/recherche/filtres, consultation,
+modification, archivage, restauration et suppression. JWT et session active requis.
+Unicité du nom normalisé par propriétaire, archives comprises ; doublon 409 et
+ressource privée étrangère/inexistante 404. Audit des cinq mutations dans la même
+transaction ; aucun champ privé de l’entreprise dans ses métadonnées.
+Voir [le contrat complet](docs/architecture/companies.md) et
+[la validation](docs/development/cand-011-validation.md).

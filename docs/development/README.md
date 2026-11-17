@@ -547,3 +547,5 @@ Après build et vérification d'une cible locale _dev/_test, la commande
 maintenance:cleanup est dry-run ; ajouter -- --apply pour une exécution manuelle
 bornée. Aucun cron, audit supprimé ou fichier email automatiquement retiré.
 Les hypothèses de conservation de sept jours après expiration restent à valider.
+
+- [Validation CAND-011](cand-011-validation.md).

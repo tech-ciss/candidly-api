@@ -128,3 +128,5 @@ module Users ne transporte plus le profil. Aucune migration ou table CRM.
 [audit-logging.md](audit-logging.md) définit les champs autorisés, la corrélation,
 les événements, les transactions et les limites de livraison. AuditLog est ajouté
 sans modifier les anciennes migrations ; la maintenance reste manuelle et locale.
+
+- [Entreprises : modèle, isolation, pagination et audit](companies.md).

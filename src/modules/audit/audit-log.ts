@@ -2,6 +2,11 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { currentRequestId } from '../../common/observability/request-context.js';
 import { structuredLog } from '../../common/observability/structured-logger.js';
 export const AUDIT_EVENTS = [
+  'COMPANY_CREATED',
+  'COMPANY_UPDATED',
+  'COMPANY_ARCHIVED',
+  'COMPANY_RESTORED',
+  'COMPANY_DELETED',
   'REGISTER',
   'EMAIL_VERIFIED',
   'LOGIN',
@@ -16,7 +21,7 @@ export type AuditEventType = (typeof AUDIT_EVENTS)[number];
 export interface AuditEvent {
   eventType: AuditEventType;
   actorUserId?: string | null;
-  targetType?: 'USER' | 'SESSION';
+  targetType?: 'USER' | 'SESSION' | 'COMPANY';
   targetId?: string;
   metadata?: {
     reason?: 'invalid_credentials' | 'refresh_reuse' | 'email_unverified';
@@ -43,7 +48,8 @@ export function auditData(event: AuditEvent) {
   if (
     (event.actorUserId && !uuid.test(event.actorUserId)) ||
     (event.targetId && !uuid.test(event.targetId)) ||
-    (event.targetType && !['USER', 'SESSION'].includes(event.targetType))
+    (event.targetType &&
+      !['USER', 'SESSION', 'COMPANY'].includes(event.targetType))
   )
     throw new Error('Cible audit invalide.');
   const metadata: Record<string, string | number> = {};

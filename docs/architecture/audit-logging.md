@@ -104,3 +104,10 @@ Aucun audit n'est supprimé par la maintenance. L'échec de journaux secondaires
 stdout n'est pas transformé en mutation métier partielle ; l'absence de collecte
 externe fiable reste un risque d'exploitation. Avant production, prévoir droits
 DB minimaux, export/collecte, alertes, surveillance du volume et sauvegardes vérifiées.
+
+## Extension CAND-011
+
+La cible COMPANY et les cinq événements COMPANY_CREATED, COMPANY_UPDATED,
+COMPANY_ARCHIVED, COMPANY_RESTORED et COMPANY_DELETED sont autorisés. Acteur
+authentifié, UUID cible et metadata vide ; écriture dans la transaction métier.
+Voir [Entreprises](companies.md) pour les règles d’idempotence et de suppression.

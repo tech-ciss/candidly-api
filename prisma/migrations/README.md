@@ -86,3 +86,14 @@ La migration locale est relue puis appliquée uniquement sur une base dédiée
 vérifiée. Les mutations critiques et leur audit partagent une transaction. La
 clé étrangère vers User impose un ordre de verrouillage User puis Session,
 y compris refresh/logout, pour rester cohérent avec changement/reset.
+
+## Entreprises — CAND-011
+
+`20261106000100_companies` ajoute CompanyStatus, Company, une unicité
+(userId, normalizedName), trois index propriétaire/statut/tri/id et une FK
+Company.userId → User.id RESTRICT. Aucun contact/candidature fictif ni cascade
+métier. Le CHECK Company_archive_state_check impose la cohérence statut/archivedAt ;
+préserver cette contrainte SQL personnalisée dans les prochaines migrations.
+Aucune ancienne migration modifiée. UUID côté Prisma, UTC timestamptz(3).
+La clé normalisée est TEXT pour supporter les expansions Unicode en minuscules.
+Consulter [le modèle et les règles](../../docs/architecture/companies.md).

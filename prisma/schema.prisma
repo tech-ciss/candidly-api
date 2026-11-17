@@ -23,6 +23,7 @@ model User {
   sessions                     Session[]
   preference                   UserPreference?
   passwordResetTokens          PasswordResetToken[]
+  companies                    Company[]
   auditLogs                    AuditLog[]
   passwordResetRequestedAt     DateTime?                @db.Timestamptz(3)
   passwordResetLastRequestedAt DateTime?                @db.Timestamptz(3)
@@ -108,4 +109,33 @@ model AuditLog {
   @@index([actorUserId, createdAt])
   @@index([eventType, createdAt])
   @@index([requestId])
+}
+
+enum CompanyStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model Company {
+  id             String        @id @default(uuid()) @db.Uuid
+  userId         String        @db.Uuid
+  name           String        @db.VarChar(150)
+  normalizedName String        @db.Text
+  industry       String?       @db.VarChar(100)
+  website        String?       @db.VarChar(2048)
+  country        String?       @db.VarChar(100)
+  city           String?       @db.VarChar(100)
+  address        String?       @db.VarChar(255)
+  description    String?       @db.VarChar(2000)
+  notes          String?       @db.VarChar(5000)
+  status         CompanyStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
+  archivedAt     DateTime?     @db.Timestamptz(3)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, normalizedName])
+  @@index([userId, status, name, id])
+  @@index([userId, status, createdAt, id])
+  @@index([userId, status, updatedAt, id])
 }
